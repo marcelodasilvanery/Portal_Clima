@@ -14,8 +14,9 @@ import asyncio
 # --- CONFIGURAÇÃO (Chaves lidas do ambiente) ---
 API_KEY = os.environ.get("WEATHER_API_KEY")
 LOCALIZACAO = os.environ.get("LOCATION")
-TELEGRAM_BOT_TOKEN = os.environ.get("8476511280:AAEUo1mqYwo9udSNkS8TdOhcIn1ui2AG7rU")
-TELEGRAM_CHAT_ID = os.environ.get("1371290468")
+# CORREÇÃO: Colocamos o NOME da variável, não o valor.
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 # --- FIM DA CONFIGURAÇÃO ---
 
 
@@ -93,7 +94,6 @@ if __name__ == "__main__":
         if caminho_do_grafico:
             cidade = dados_climaticos['location']['name']
             mensagem = f"📊 Previsão para {cidade} - Próximos 10 dias.\n\nAtualizado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            # Roda a função assíncrona do Telegram
             asyncio.run(enviar_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, mensagem, caminho_do_grafico))
     print("="*50)
     print("     PROCESSO FINALIZADO")
