@@ -36,12 +36,12 @@ def pegar_dados_clima(api_key, localizacao):
         return None
 
 def criar_grafico(dados):
-    """Processa os dados do WeatherAPI e cria o gráfico com melhorias."""
+    """Processa os dados do WeatherAPI e cria o gráfico com valores e datas formatadas."""
     if not dados or 'forecast' not in dados or 'forecastday' not in dados['forecast']:
         print("❌ Dados inválidos para criar o gráfico.")
         return None
 
-    print("📊 Processando dados e criando o gráfico com a maquiagem...")
+    print("📊 Processando dados e criando o gráfico com a maquiagem final...")
     dias = []
     for dia in dados['forecast']['forecastday']:
         data_obj = datetime.datetime.strptime(dia['date'], '%Y-%m-%d')
@@ -62,26 +62,30 @@ def criar_grafico(dados):
     axs[0].set_ylabel('Probabilidade de Chuva (%)')
     axs[0].grid(True, linestyle='--', alpha=0.6)
     axs[0].set_ylim(0, 105)
-    
-    # Adiciona os valores em cima de cada ponto
     for i, row in df.iterrows():
         axs[0].text(row['Data'], row['Probabilidade de Chuva (%)'] + 2, f"{int(row['Probabilidade de Chuva (%)'])}%", 
                      ha='center', va='bottom', fontsize=9, color='darkblue')
 
-    # --- Gráfico 2: Precipitação ---
+    # --- Gráfico 2: Precipitação (com valores) ---
     axs[1].bar(df['Data'], df['Precipitação (mm)'], color='skyblue', label='Precipitação')
     axs[1].set_ylabel('Precipitação (mm)')
     axs[1].grid(True, linestyle='--', alpha=0.6)
+    for i, row in df.iterrows():
+        axs[1].text(row['Data'], row['Precipitação (mm)'] + 0.2, f"{row['Precipitação (mm)']:.1f}", 
+                     ha='center', va='bottom', fontsize=9)
 
-    # --- Gráfico 3: Vento ---
+    # --- Gráfico 3: Vento (com valores) ---
     axs[2].plot(df['Data'], df['Vento (km/h)'], marker='s', linestyle='-', color='green', label='Vel. Vento')
     axs[2].set_ylabel('Vento (km/h)')
     axs[2].set_xlabel('Data')
     axs[2].grid(True, linestyle='--', alpha=0.6)
+    for i, row in df.iterrows():
+        axs[2].text(row['Data'], row['Vento (km/h)'] + 0.5, f"{int(row['Vento (km/h)')}", 
+                     ha='center', va='bottom', fontsize=9, color='darkgreen')
 
-    # --- Formatação do Eixo X para TODOS os gráficos ---
-    fig.autofmt_xdate() # Ajusta o ângulo das datas para não se sobreporem
-    date_format = mdates.DateFormatter('%d/%m')
+    # --- Formatação do Eixo X para TODOS os gráficos (formato dd/mm) ---
+    fig.autofmt_xdate() # Ajusta o ângulo das datas
+    date_format = mdates.DateFormatter('%d/%m') # Formato de data Dia/Mês
     
     for ax in axs:
         ax.xaxis.set_major_formatter(date_format)
