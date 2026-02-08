@@ -14,7 +14,7 @@ import asyncio
 # --- CONFIGURAÇÃO (Chaves lidas do ambiente) ---
 API_KEY = os.environ.get("WEATHER_API_KEY")
 LOCALIZACAO = os.environ.get("LOCATION")
-TELEGRAM_BOT_TOKEN = os.environ.get("8476511280:AAEUo1mwYwo9udSNkS8Td0hcIn1ui2AG7ru")
+TELEGRAM_BOT_TOKEN = os.environ.get("8476511280:AAEUo1mqYwo9udSNkS8TdOhcIn1ui2AG7rU")
 TELEGRAM_CHAT_ID = os.environ.get("1371290468")
 # --- FIM DA CONFIGURAÇÃO ---
 
