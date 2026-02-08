@@ -2,10 +2,10 @@ name: Robô de Clima Telegram
 
 on:
   schedule:
-    # Roda todos os dias às 07:00 UTC (04:00 no horário de Brasília)
-    - cron: '0 7 * * *'
-    # Roda todos os dias às 17:00 UTC (14:00 no horário de Brasília)
-    - cron: '0 17 * * *'
+    # Roda todos os dias às 10:00 UTC (07:00 no horário de Brasília)
+    - cron: '0 10 * * *'
+    # Roda todos os dias às 18:00 UTC (15:00 no horário de Brasília)
+    - cron: '0 18 * * *'
   # Permite rodar manualmente pelo GitHub
   workflow_dispatch:
 
