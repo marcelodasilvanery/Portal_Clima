@@ -26,13 +26,13 @@ def criar_grafico(dados):
     axs[0].grid(True, linestyle='--', alpha=0.6)
     axs[0].set_ylim(0, 105)
     
-    # NOVIDADE: Adiciona os valores em cima de cada ponto
+    # Adiciona os valores em cima de cada ponto
     for i, row in df.iterrows():
         axs[0].text(row['Data'], row['Probabilidade de Chuva (%)'] + 2, f"{int(row['Probabilidade de Chuva (%)'])}%", 
                      ha='center', va='bottom', fontsize=9, color='darkblue')
 
     # --- Gráfico 2: Precipitação ---
-    axs[1].bar(df['Data'], df['Precipitação (mm)', color='skyblue', label='Precipitação')
+    axs[1].bar(df['Data'], df['Precipitação (mm)'], color='skyblue', label='Precipitação')
     axs[1].set_ylabel('Precipitação (mm)')
     axs[1].grid(True, linestyle='--', alpha=0.6)
 
