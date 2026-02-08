@@ -1,4 +1,4 @@
-name: Robô de Clima WhatsApp
+name: Robô de Clima Telegram
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
     - cron: '0 7 * * *'
     # Roda todos os dias às 17:00 UTC (14:00 no horário de Brasília)
     - cron: '0 17 * * *'
-  # Permite que você rode manualmente pelo GitHub, se precisar
+  # Permite rodar manualmente pelo GitHub
   workflow_dispatch:
 
 jobs:
@@ -33,8 +33,9 @@ jobs:
     # Passo 4: Executa o script Python
     - name: Executar o Robô de Clima
       env:
-        # Pega as chaves secretas do GitHub (vamos configurar no próximo passo)
-        API_KEY: ${{ secrets.WEATHER_API_KEY }}
-        LOCALIZACAO: ${{ secrets.LOCATION }}
-        NUMERO_WHATSAPP: ${{ secrets.PHONE_NUMBER }}
+        # Pega as chaves secretas do GitHub
+        WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        LOCATION: ${{ secrets.LOCATION }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python clima_bot_v2.py
