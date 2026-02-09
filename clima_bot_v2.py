@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Importando as bibliotecas necessárias
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,133 +9,151 @@ import os
 import sys
 import telegram
 import asyncio
-import pytz # Biblioteca para lidar com fusos horários
+import pytz
 
-# --- CONFIGURAÇÃO (Chaves lidas do ambiente) ---
+# --- CONFIGURAÇÃO (Chaves do ambiente) ---
 API_KEY = os.environ.get("WEATHER_API_KEY")
 LOCALIZACAO = os.environ.get("LOCATION")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-# --- FIM DA CONFIGURAÇÃO ---
+# -----------------------------------------
 
 
 def pegar_dados_clima(api_key, localizacao):
-    """Faz a requisição para a API do WeatherAPI.com e retorna os dados."""
     if not api_key or not localizacao:
-        print("❌ ERRO: Variáveis de ambiente (WEATHER_API_KEY ou LOCATION) não encontradas.")
+        print("❌ Variáveis de ambiente não encontradas.")
         sys.exit(1)
+
     url = f"http://api.weatherapi.com/v1/forecast.json?key={api_key}&q={localizacao}&days=10&aqi=no&alerts=no"
-    print(f"Conectando à API do WeatherAPI.com para: {localizacao}")
+    print(f"Buscando dados para: {localizacao}")
+
     try:
         response = requests.get(url)
         response.raise_for_status()
-        print("✅ Dados recebidos da API com sucesso!")
         return response.json()
     except Exception as e:
-        print(f"❌ Erro ao buscar dados da API: {e}")
+        print(f"Erro API: {e}")
         return None
+
 
 def criar_grafico(dados):
-    """Processa os dados do WeatherAPI e cria o gráfico com valores e datas formatadas."""
-    if not dados or 'forecast' not in dados or 'forecastday' not in dados['forecast']:
-        print("❌ Dados inválidos para criar o gráfico.")
+    if not dados:
         return None
 
-    print("📊 Processando dados e criando o gráfico com a maquiagem final...")
+    print("Criando gráfico profissional...")
+
     dias = []
     for dia in dados['forecast']['forecastday']:
         data_obj = datetime.datetime.strptime(dia['date'], '%Y-%m-%d')
         dias.append({
             "Data": data_obj,
-            "Probabilidade de Chuva (%)": dia['day']['daily_chance_of_rain'],
-            "Precipitação (mm)": dia['day']['totalprecip_mm'],
-            "Vento (km/h)": dia['day']['maxwind_kph']
+            "Probabilidade": dia['day']['daily_chance_of_rain'],
+            "Precipitacao": dia['day']['totalprecip_mm']
         })
-    
+
     df = pd.DataFrame(dias)
 
-    fig, axs = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
-    fig.suptitle(f'Previsão para {dados["location"]["name"]}', fontsize=20, weight='bold')
+    # ===== Métricas =====
+    media_precip = df['Precipitacao'].mean()
+    volume_total = df['Precipitacao'].sum()
+    prob_media = df['Probabilidade'].mean()
+    dia_maior = df.loc[df['Precipitacao'].idxmax()]
 
-    # --- Gráfico 1: Probabilidade de Chuva (com valores) ---
-    axs[0].plot(df['Data'], df['Probabilidade de Chuva (%)'], marker='o', linestyle='-', color='royalblue', label='Prob. Chuva')
-    axs[0].set_ylabel('Probabilidade de Chuva (%)')
-    axs[0].grid(True, linestyle='--', alpha=0.6)
-    axs[0].set_ylim(0, 105)
-    for i, row in df.iterrows():
-        axs[0].text(row['Data'], row['Probabilidade de Chuva (%)'] + 2, f"{int(row['Probabilidade de Chuva (%)'])}%", 
-                     ha='center', va='bottom', fontsize=9, color='darkblue')
+    # ===== Layout =====
+    fig = plt.figure(figsize=(14,6))
+    gs = fig.add_gridspec(1, 5)
 
-    # --- Gráfico 2: Precipitação (com valores) ---
-    axs[1].bar(df['Data'], df['Precipitação (mm)'], color='skyblue', label='Precipitação')
-    axs[1].set_ylabel('Precipitação (mm)')
-    axs[1].grid(True, linestyle='--', alpha=0.6)
-    for i, row in df.iterrows():
-        axs[1].text(row['Data'], row['Precipitação (mm)'] + 0.2, f"{row['Precipitação (mm)']:.1f}", 
-                     ha='center', va='bottom', fontsize=9)
+    ax = fig.add_subplot(gs[0, :4])
+    ax_info = fig.add_subplot(gs[0, 4])
 
-    # --- Gráfico 3: Vento (com valores) ---
-    axs[2].plot(df['Data'], df['Vento (km/h)'], marker='s', linestyle='-', color='green', label='Vel. Vento')
-    axs[2].set_ylabel('Vento (km/h)')
-    axs[2].set_xlabel('Data')
-    axs[2].grid(True, linestyle='--', alpha=0.6)
-    for i, row in df.iterrows():
-        axs[2].text(row['Data'], row['Vento (km/h)'] + 0.5, f"{int(row['Vento (km/h)'])}", 
-                     ha='center', va='bottom', fontsize=9, color='darkgreen')
+    cidade = dados["location"]["name"]
+    fig.suptitle(f"{cidade} - Previsão 10 dias", fontsize=16, weight='bold')
 
-    # --- Formatação do Eixo X para TODOS os gráficos (Alinhamento Horizontal) ---
-    date_format = mdates.DateFormatter('%d/%m') # Formato de data Dia/Mês
-    
-    # Loop para garantir que TODOS os gráficos tenham o eixo X formatado e visível
-    for ax in axs:
-        ax.xaxis.set_major_formatter(date_format)
-        ax.set_xlabel('Data') # Adiciona o rótulo "Data" em todos os gráficos
-        # Força a exibição e o alinhamento horizontal dos rótulos do eixo X
-        ax.tick_params(axis='x', labelbottom=True, rotation=0) # Define a rotação para 0 graus (horizontal)
-    
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
-    
+    # Barras de chuva
+    bars = ax.bar(df['Data'], df['Precipitacao'])
+
+    for bar in bars:
+        h = bar.get_height()
+        if h > 0:
+            ax.text(bar.get_x() + bar.get_width()/2, h + 0.2,
+                    f"{h:.1f}", ha='center', fontsize=8)
+
+    ax.set_ylabel("Precipitação (mm)")
+    ax.grid(True, linestyle='--', alpha=0.4)
+
+    # Linha probabilidade
+    ax2 = ax.twinx()
+    ax2.plot(df['Data'], df['Probabilidade'], marker='o', linestyle='--')
+
+    for x, y in zip(df['Data'], df['Probabilidade']):
+        ax2.text(x, y + 2, f"{int(y)}%", ha='center', fontsize=8)
+
+    ax2.set_ylabel("Probabilidade (%)")
+    ax2.set_ylim(0, 100)
+
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+
+    # ===== Painel lateral =====
+    ax_info.axis('off')
+
+    info_text = (
+        f"Média diária\n{media_precip:.2f} mm\n\n"
+        f"Volume total\n{volume_total:.1f} mm\n\n"
+        f"Prob. média\n{prob_media:.0f}%\n\n"
+        f"Maior volume\n"
+        f"{dia_maior['Precipitacao']:.1f} mm\n"
+        f"{dia_maior['Data'].strftime('%d/%m')}"
+    )
+
+    ax_info.text(0.05, 0.9, info_text, fontsize=11, va='top')
+
+    plt.tight_layout()
     nome_arquivo = "grafico_clima.png"
-    plt.savefig(nome_arquivo)
-    print(f"✅ Gráfico salvo como '{nome_arquivo}'")
+    plt.savefig(nome_arquivo, dpi=150)
     plt.close()
+
     return nome_arquivo
 
-async def enviar_telegram(token, chat_id, mensagem, caminho_imagem):
-    """Usa a biblioteca python-telegram-bot para enviar a imagem."""
-    if not token or not chat_id:
-        print("❌ ERRO: Variáveis de ambiente (TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID) não encontradas.")
-        return
-    try:
-        print("📱 Enviando mensagem para o Telegram...")
-        bot = telegram.Bot(token=token)
-        with open(caminho_imagem, 'rb') as photo_file:
-            await bot.send_photo(chat_id=chat_id, photo=photo_file, caption=mensagem)
-        print("✅ Mensagem enviada com sucesso!")
-    except Exception as e:
-        print(f"❌ Ocorreu um erro ao enviar a mensagem: {e}")
 
-# --- FLUXO PRINCIPAL ---
+async def enviar_telegram(token, chat_id, mensagem, caminho_imagem):
+    if not token or not chat_id:
+        print("Token ou Chat ID não encontrado.")
+        return
+
+    try:
+        bot = telegram.Bot(token=token)
+        with open(caminho_imagem, 'rb') as photo:
+            await bot.send_photo(chat_id=chat_id, photo=photo, caption=mensagem)
+        print("Mensagem enviada!")
+    except Exception as e:
+        print(f"Erro Telegram: {e}")
+
+
+# ===== EXECUÇÃO =====
 if __name__ == "__main__":
-    print("="*50)
-    print("  INICIANDO O ROBÔ DE CLIMA (Telegram)")
-    print("="*50)
-    dados_climaticos = pegar_dados_clima(API_KEY, LOCALIZACAO)
-    if dados_climaticos:
-        caminho_do_grafico = criar_grafico(dados_climaticos)
-        if caminho_do_grafico:
-            cidade = dados_climaticos['location']['name']
-            # --- CORREÇÃO DO FUSO HORÁRIO ---
-            # Pega a data e hora atual em UTC
+
+    dados = pegar_dados_clima(API_KEY, LOCALIZACAO)
+
+    if dados:
+        grafico = criar_grafico(dados)
+
+        if grafico:
+            cidade = dados['location']['name']
+
             agora_utc = datetime.datetime.now(pytz.utc)
-            # Define o fuso horário de Brasília
-            fuso_brasilia = pytz.timezone('America/Sao_Paulo')
-            # Converte a hora de UTC para o fuso de Brasília
-            agora_brasilia = agora_utc.astimezone(fuso_brasilia)
-            # Formata a data e hora de Brasília para a mensagem
-            mensagem = f"📊 Previsão para {cidade} - Próximos 10 dias.\n\nAtualizado em: {agora_brasilia.strftime('%d/%m/%Y %H:%M')}"
-            # --- FIM DA CORREÇÃO ---
-            asyncio.run(enviar_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, mensagem, caminho_do_grafico))
-    print("="*50)
-    print("     PROCESSO FINALIZADO")
-    print("="*50)
+            brasil = pytz.timezone('America/Sao_Paulo')
+            agora_br = agora_utc.astimezone(brasil)
+
+            mensagem = (
+                f"📊 Previsão para {cidade}\n"
+                f"Atualizado: {agora_br.strftime('%d/%m/%Y %H:%M')}"
+            )
+
+            asyncio.run(
+                enviar_telegram(
+                    TELEGRAM_BOT_TOKEN,
+                    TELEGRAM_CHAT_ID,
+                    mensagem,
+                    grafico
+                )
+            )
