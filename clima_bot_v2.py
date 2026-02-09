@@ -14,12 +14,13 @@ CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 # --- FUNÇÕES ---
 
 def obter_dados_clima():
-    """Busca os dados da API de clima para os próximos 10 dias."""
+    """Busca os dados da API de clima para os próximos 10 dias, em português."""
     if not API_KEY:
         print("Erro: Variável de ambiente (WEATHER_API_KEY) não configurada.")
         return None
 
-    url = f"http://api.weatherapi.com/v1/forecast.json?key={API_KEY}&q={LOCATION}&days=10&aqi=no&alerts=no"
+    # --- MUDANÇA: ADICIONADO &lang=pt PARA TRADUZIR O RESULTADO ---
+    url = f"http://api.weatherapi.com/v1/forecast.json?key={API_KEY}&q={LOCATION}&days=10&lang=pt&aqi=no&alerts=no"
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -37,10 +38,10 @@ def formatar_mensagem(dados):
         data = datetime.strptime(dia['date'], '%Y-%m-%d').strftime('%d/%m')
         temp_max = dia['day']['maxtemp_c']
         temp_min = dia['day']['mintemp_c']
-        condicao = dia['day']['condition']['text']
+        # Agora a 'condicao' já virá traduzida da API
+        condicao = dia['day']['condition']['text'] 
         chuva_prob = dia['day']['daily_chance_of_rain']
         
-        # --- MUDANÇA: LINHA DO VENTO REMOVIDA ---
         mensagem += (
             f"*{data}*: {condicao}\n"
             f"🌡️ {temp_min:.0f}° / {temp_max:.0f}° | "
@@ -53,27 +54,22 @@ def criar_graficos(dados):
     dias = dados['forecast']['forecastday']
     datas = [datetime.strptime(d['date'], '%Y-%m-%d') for d in dias]
     
-    # --- MUDANÇA 1: COLETAR DADOS DE CHUVA EM MM ---
     precipitacao_mm = [d['day']['totalprecip_mm'] for d in dias]
     temp_media = [d['day']['avgtemp_c'] for d in dias]
     temp_min = [d['day']['mintemp_c'] for d in dias]
     temp_max = [d['day']['maxtemp_c'] for d in dias]
 
-    # --- MUDANÇA 2: REDUZIR PARA 2 GRÁFICOS E AJUSTAR TAMANHO ---
     fig, axs = plt.subplots(2, 1, figsize=(14, 14))
     fig.suptitle('Previsão Tanabi - SP - Próximos 10 dias', fontsize=22, fontweight='bold')
 
     # --- GRÁFICO 1: PREVISÃO DE CHUVA EM MILÍMETROS ---
     axs[0].bar(datas, precipitacao_mm, color='royalblue', edgecolor='gray')
-    # --- MUDANÇA 3: TÍTULO E EIXO Y ATUALIZADOS ---
     axs[0].set_title('Previsão de Chuva (mm)', fontsize=14)
     axs[0].set_ylabel('Precipitação (mm)')
     axs[0].grid(axis='y', linestyle='--', alpha=0.7)
     axs[0].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     
-    # --- MUDANÇA 4: VALORES EM MM ---
     for i, (data, valor) in enumerate(zip(datas, precipitacao_mm)):
-        # Só mostra o valor se for maior que 0 para não poluir
         if valor > 0:
             axs[0].text(data, valor + 0.2, f'{valor:.1f}mm', ha='center', va='bottom', fontsize=10)
 
@@ -83,7 +79,6 @@ def criar_graficos(dados):
     axs[1].plot(datas, temp_min, marker='^', linestyle='-', label='Mínima (°C)', color='blue')
     axs[1].set_title('Temperatura (°C)', fontsize=14)
     axs[1].set_ylabel('Temperatura (°C)')
-    # --- MUDANÇA 5: ADICIONAR RÓTULO DO EIXO X AQUI ---
     axs[1].set_xlabel('Data')
     axs[1].legend()
     axs[1].grid(True, linestyle='--', alpha=0.7)
@@ -95,8 +90,6 @@ def criar_graficos(dados):
         axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='orange')
     for i, (data, valor) in enumerate(zip(datas, temp_min)):
         axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='blue')
-
-    # --- BLOCO DO GRÁFICO DE VENTO REMOVIDO COMPLETAMENTE ---
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
