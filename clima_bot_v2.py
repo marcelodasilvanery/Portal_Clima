@@ -78,3 +78,55 @@ def criar_grafico(dados):
     axs[2].plot(df['Data'], df['Vento (km/h)'], marker='s', linestyle='-', color='green', label='Vel. Vento')
     axs[2].set_ylabel('Vento (km/h)')
     axs[2].set_xlabel('Data')
+    axs[2].grid(True, linestyle='--', alpha=0.6)
+    for i, row in df.iterrows():
+        axs[2].text(row['Data'], row['Vento (km/h)'] + 0.5, f"{int(row['Vento (km/h)'])}", 
+                     ha='center', va='bottom', fontsize=9, color='darkgreen')
+
+    # --- Formatação do Eixo X para TODOS os gráficos (Alinhamento Horizontal) ---
+    date_format = mdates.DateFormatter('%d/%m') # Formato de data Dia/Mês
+    
+    # Loop para garantir que TODOS os gráficos tenham o eixo X formatado e visível
+    for ax in axs:
+        ax.xaxis.set_major_formatter(date_format)
+        ax.set_xlabel('Data') # Adiciona o rótulo "Data" em todos os gráficos
+        # Força a exibição e o alinhamento horizontal dos rótulos do eixo X
+        ax.tick_params(axis='x', labelbottom=True, rotation=0) # Define a rotação para 0 graus (horizontal)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    
+    nome_arquivo = "grafico_clima.png"
+    plt.savefig(nome_arquivo)
+    print(f"✅ Gráfico salvo como '{nome_arquivo}'")
+    plt.close()
+    return nome_arquivo
+
+async def enviar_telegram(token, chat_id, mensagem, caminho_imagem):
+    """Usa a biblioteca python-telegram-bot para enviar a imagem."""
+    if not token or not chat_id:
+        print("❌ ERRO: Variáveis de ambiente (TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID) não encontradas.")
+        return
+    try:
+        print("📱 Enviando mensagem para o Telegram...")
+        bot = telegram.Bot(token=token)
+        with open(caminho_imagem, 'rb') as photo_file:
+            await bot.send_photo(chat_id=chat_id, photo=photo_file, caption=mensagem)
+        print("✅ Mensagem enviada com sucesso!")
+    except Exception as e:
+        print(f"❌ Ocorreu um erro ao enviar a mensagem: {e}")
+
+# --- FLUXO PRINCIPAL ---
+if __name__ == "__main__":
+    print("="*50)
+    print("  INICIANDO O ROBÔ DE CLIMA (Telegram)")
+    print("="*50)
+    dados_climaticos = pegar_dados_clima(API_KEY, LOCALIZACAO)
+    if dados_climaticos:
+        caminho_do_grafico = criar_grafico(dados_climaticos)
+        if caminho_do_grafico:
+            cidade = dados_climaticos['location']['name']
+            mensagem = f"📊 Previsão para {cidade} - Próximos 10 dias.\n\nAtualizado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            asyncio.run(enviar_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, mensagem, caminho_do_grafico))
+    print("="*50)
+    print("     PROCESSO FINALIZADO")
+    print("="*50)
