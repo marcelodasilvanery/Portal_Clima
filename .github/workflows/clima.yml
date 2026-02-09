@@ -44,4 +44,4 @@ jobs:
 
       # Passo 4: Executa o script Python
       - name: 'Executar o robô de clima'
-        run: python clima_bot.py
+        run: python clima_bot_v2.py
