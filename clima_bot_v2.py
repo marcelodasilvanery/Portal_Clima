@@ -10,6 +10,7 @@ import os
 import sys
 import telegram
 import asyncio
+import pytz # Biblioteca para lidar com fusos horários
 
 # --- CONFIGURAÇÃO (Chaves lidas do ambiente) ---
 API_KEY = os.environ.get("WEATHER_API_KEY")
@@ -125,7 +126,16 @@ if __name__ == "__main__":
         caminho_do_grafico = criar_grafico(dados_climaticos)
         if caminho_do_grafico:
             cidade = dados_climaticos['location']['name']
-            mensagem = f"📊 Previsão para {cidade} - Próximos 10 dias.\n\nAtualizado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            # --- CORREÇÃO DO FUSO HORÁRIO ---
+            # Pega a data e hora atual em UTC
+            agora_utc = datetime.datetime.now(pytz.utc)
+            # Define o fuso horário de Brasília
+            fuso_brasilia = pytz.timezone('America/Sao_Paulo')
+            # Converte a hora de UTC para o fuso de Brasília
+            agora_brasilia = agora_utc.astimezone(fuso_brasilia)
+            # Formata a data e hora de Brasília para a mensagem
+            mensagem = f"📊 Previsão para {cidade} - Próximos 10 dias.\n\nAtualizado em: {agora_brasilia.strftime('%d/%m/%Y %H:%M')}"
+            # --- FIM DA CORREÇÃO ---
             asyncio.run(enviar_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, mensagem, caminho_do_grafico))
     print("="*50)
     print("     PROCESSO FINALIZADO")
