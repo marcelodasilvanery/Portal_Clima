@@ -1,32 +1,47 @@
-name: Bot Clima Telegram
+name: 'Robô de Clima'
 
+# --- AGENDAMENTO E GATILHOS ---
+# O agendamento usa o horário UTC (Brasil = UTC-3)
 on:
   schedule:
-    - cron: '0 11,14,18,21 * * *'   # 08h, 11h, 15h e 18h (horário de Brasília)
-  workflow_dispatch:
+    # 08:00 em Brasília -> 11:00 em UTC
+    - cron: '0 11 * * *'
+    # 11:00 em Brasília -> 14:00 em UTC
+    - cron: '0 14 * * *'
+    # 15:00 em Brasília -> 18:00 em UTC
+    - cron: '0 18 * * *'
+    # 18:00 em Brasília -> 21:00 em UTC
+    - cron: '0 21 * * *'
+  workflow_dispatch: # Permite execução manual pela interface do GitHub
 
+# --- O TRABALHO A SER EXECUTADO ---
 jobs:
-  executar-bot:
+  build:
     runs-on: ubuntu-latest
+    # --- VARIÁVEIS DE AMBIENTE (SECRETS) ---
+    env:
+      # Apenas as variáveis necessárias para o Telegram e a API de Clima
+      WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+      LOCATION: ${{ secrets.LOCATION }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
+    # --- PASSOS DA EXECUÇÃO ---
     steps:
-      - name: Baixar repositorio
+      # Passo 1: Faz o download do código do seu repositório
+      - name: 'Checkout do repositório'
         uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
+      # Passo 2: Configura o ambiente Python 3.10
+      - name: 'Configurar Python'
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Instalar dependencias
-        run: |
-          pip install --upgrade pip
-          pip install requests pandas matplotlib python-telegram-bot pytz
+      # Passo 3: Instala as bibliotecas necessárias
+      - name: 'Instalar dependências'
+        run: pip install requests pandas matplotlib
 
-      - name: Executar script
-        env:
-          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
-          LOCATION: ${{ secrets.LOCATION }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python clima_bot_v2.py
+      # Passo 4: Executa o script Python
+      - name: 'Executar o robô de clima'
+        run: python clima_bot.py
