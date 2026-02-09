@@ -19,7 +19,6 @@ def obter_dados_clima():
         print("Erro: Variável de ambiente (WEATHER_API_KEY) não configurada.")
         return None
 
-    # --- MUDANÇA: ADICIONADO &lang=pt PARA TRADUZIR O RESULTADO ---
     url = f"http://api.weatherapi.com/v1/forecast.json?key={API_KEY}&q={LOCATION}&days=10&lang=pt&aqi=no&alerts=no"
     try:
         response = requests.get(url)
@@ -30,36 +29,39 @@ def obter_dados_clima():
         return None
 
 def formatar_mensagem(dados):
-    """Formata a mensagem de texto, removendo a informação do vento para alinhar com os gráficos."""
+    """Formata a mensagem de texto para um resumo com total de chuva e horário de atualização."""
     local = dados['location']['name']
-    mensagem = f"🌤️ *Previsão {local} - Próximos 10 dias*\n\n"
     
-    for dia in dados['forecast']['forecastday']:
-        data = datetime.strptime(dia['date'], '%Y-%m-%d').strftime('%d/%m')
-        temp_max = dia['day']['maxtemp_c']
-        temp_min = dia['day']['mintemp_c']
-        # Agora a 'condicao' já virá traduzida da API
-        condicao = dia['day']['condition']['text'] 
-        chuva_prob = dia['day']['daily_chance_of_rain']
-        
-        mensagem += (
-            f"*{data}*: {condicao}\n"
-            f"🌡️ {temp_min:.0f}° / {temp_max:.0f}° | "
-            f"💧 {chuva_prob}%\n\n"
-        )
+    # --- MUDANÇA: CALCULAR O TOTAL DE CHUVA ACUMULADA ---
+    total_chuva_mm = sum(d['day']['totalprecip_mm'] for d in dados['forecast']['forecastday'])
+    
+    # --- MUDANÇA: BUSCAR E FORMATAR O HORÁRIO DE ATUALIZAÇÃO ---
+    # A API retorna o horário local no formato 'YYYY-MM-DD HH:mm'
+    hora_atualizacao_str = dados['location']['localtime']
+    hora_atualizacao = datetime.strptime(hora_atualizacao_str, '%Y-%m-%d %H:%M').strftime('%H:%M')
+    
+    # --- MUDANÇA: MONTAR A NOVA MENSAGEM DE RESUMO ---
+    mensagem = (
+        f"🌤️ *Previsão {local} - Próximos 10 dias*\n\n"
+        f"Resumo da Chuva: {total_chuva_mm:.1f} mm acumulados na previsão.\n\n"
+        f"Atualizado às {hora_atualizacao}."
+    )
     return mensagem
 
 def criar_graficos(dados):
-    """Cria e salva os gráficos de chuva (em mm) e temperatura."""
+    """Cria e salva os três gráficos: chuva (mm), probabilidade (%) e temperatura."""
     dias = dados['forecast']['forecastday']
     datas = [datetime.strptime(d['date'], '%Y-%m-%d') for d in dias]
     
     precipitacao_mm = [d['day']['totalprecip_mm'] for d in dias]
+    # --- MUDANÇA: COLETAR DADOS DE PROBABILIDADE DE CHUVA ---
+    prob_chuva = [d['day']['daily_chance_of_rain'] for d in dias]
     temp_media = [d['day']['avgtemp_c'] for d in dias]
     temp_min = [d['day']['mintemp_c'] for d in dias]
     temp_max = [d['day']['maxtemp_c'] for d in dias]
 
-    fig, axs = plt.subplots(2, 1, figsize=(14, 14))
+    # --- MUDANÇA: VOLTAR PARA 3 GRÁFICOS E AJUSTAR TAMANHO ---
+    fig, axs = plt.subplots(3, 1, figsize=(14, 20))
     fig.suptitle('Previsão Tanabi - SP - Próximos 10 dias', fontsize=22, fontweight='bold')
 
     # --- GRÁFICO 1: PREVISÃO DE CHUVA EM MILÍMETROS ---
@@ -73,23 +75,36 @@ def criar_graficos(dados):
         if valor > 0:
             axs[0].text(data, valor + 0.2, f'{valor:.1f}mm', ha='center', va='bottom', fontsize=10)
 
-    # --- GRÁFICO 2: TEMPERATURA ---
-    axs[1].plot(datas, temp_max, marker='o', linestyle='-', label='Máxima (°C)', color='red')
-    axs[1].plot(datas, temp_media, marker='s', linestyle='--', label='Média (°C)', color='orange')
-    axs[1].plot(datas, temp_min, marker='^', linestyle='-', label='Mínima (°C)', color='blue')
-    axs[1].set_title('Temperatura (°C)', fontsize=14)
-    axs[1].set_ylabel('Temperatura (°C)')
-    axs[1].set_xlabel('Data')
+    # --- MUDANÇA: NOVO GRÁFICO 2: PROBABILIDADE DE CHUVA (%) ---
+    axs[1].plot(datas, prob_chuva, marker='o', linestyle='-', color='darkorange', label='Probabilidade')
+    axs[1].set_title('Probabilidade de Chuva (%)', fontsize=14)
+    axs[1].set_ylabel('Probabilidade (%)')
+    axs[1].set_ylim(0, 100)
     axs[1].legend()
     axs[1].grid(True, linestyle='--', alpha=0.7)
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+    
+    # Adicionar valores em porcentagem no gráfico de linha
+    for i, (data, valor) in enumerate(zip(datas, prob_chuva)):
+        axs[1].text(data, valor + 3, f'{valor}%', ha='center', va='bottom', fontsize=10, color='darkorange')
+
+    # --- GRÁFICO 3: TEMPERATURA (ANTIGO GRÁFICO 2) ---
+    axs[2].plot(datas, temp_max, marker='o', linestyle='-', label='Máxima (°C)', color='red')
+    axs[2].plot(datas, temp_media, marker='s', linestyle='--', label='Média (°C)', color='orange')
+    axs[2].plot(datas, temp_min, marker='^', linestyle='-', label='Mínima (°C)', color='blue')
+    axs[2].set_title('Temperatura (°C)', fontsize=14)
+    axs[2].set_ylabel('Temperatura (°C)')
+    axs[2].set_xlabel('Data')
+    axs[2].legend()
+    axs[2].grid(True, linestyle='--', alpha=0.7)
+    axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
 
     for i, (data, valor) in enumerate(zip(datas, temp_max)):
-        axs[1].text(data, valor + 0.5, f'{valor:.0f}°', ha='center', va='bottom', fontsize=9, color='red')
+        axs[2].text(data, valor + 0.5, f'{valor:.0f}°', ha='center', va='bottom', fontsize=9, color='red')
     for i, (data, valor) in enumerate(zip(datas, temp_media)):
-        axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='orange')
+        axs[2].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='orange')
     for i, (data, valor) in enumerate(zip(datas, temp_min)):
-        axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='blue')
+        axs[2].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='blue')
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
