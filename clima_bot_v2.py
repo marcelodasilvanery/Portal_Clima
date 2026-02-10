@@ -32,15 +32,11 @@ def formatar_mensagem(dados):
     """Formata a mensagem de texto para um resumo com total de chuva e horário de atualização."""
     local = dados['location']['name']
     
-    # --- MUDANÇA: CALCULAR O TOTAL DE CHUVA ACUMULADA ---
     total_chuva_mm = sum(d['day']['totalprecip_mm'] for d in dados['forecast']['forecastday'])
     
-    # --- MUDANÇA: BUSCAR E FORMATAR O HORÁRIO DE ATUALIZAÇÃO ---
-    # A API retorna o horário local no formato 'YYYY-MM-DD HH:mm'
     hora_atualizacao_str = dados['location']['localtime']
     hora_atualizacao = datetime.strptime(hora_atualizacao_str, '%Y-%m-%d %H:%M').strftime('%H:%M')
     
-    # --- MUDANÇA: MONTAR A NOVA MENSAGEM DE RESUMO ---
     mensagem = (
         f"🌤️ *Previsão {local} - Próximos 10 dias*\n\n"
         f"Resumo da Chuva: {total_chuva_mm:.1f} mm acumulados na previsão.\n\n"
@@ -54,13 +50,11 @@ def criar_graficos(dados):
     datas = [datetime.strptime(d['date'], '%Y-%m-%d') for d in dias]
     
     precipitacao_mm = [d['day']['totalprecip_mm'] for d in dias]
-    # --- MUDANÇA: COLETAR DADOS DE PROBABILIDADE DE CHUVA ---
     prob_chuva = [d['day']['daily_chance_of_rain'] for d in dias]
     temp_media = [d['day']['avgtemp_c'] for d in dias]
     temp_min = [d['day']['mintemp_c'] for d in dias]
     temp_max = [d['day']['maxtemp_c'] for d in dias]
 
-    # --- MUDANÇA: VOLTAR PARA 3 GRÁFICOS E AJUSTAR TAMANHO ---
     fig, axs = plt.subplots(3, 1, figsize=(14, 20))
     fig.suptitle('Previsão Tanabi - SP - Próximos 10 dias', fontsize=22, fontweight='bold')
 
@@ -75,7 +69,7 @@ def criar_graficos(dados):
         if valor > 0:
             axs[0].text(data, valor + 0.2, f'{valor:.1f}mm', ha='center', va='bottom', fontsize=10)
 
-    # --- MUDANÇA: NOVO GRÁFICO 2: PROBABILIDADE DE CHUVA (%) ---
+    # --- GRÁFICO 2: PROBABILIDADE DE CHUVA (%) ---
     axs[1].plot(datas, prob_chuva, marker='o', linestyle='-', color='darkorange', label='Probabilidade')
     axs[1].set_title('Probabilidade de Chuva (%)', fontsize=14)
     axs[1].set_ylabel('Probabilidade (%)')
@@ -84,11 +78,10 @@ def criar_graficos(dados):
     axs[1].grid(True, linestyle='--', alpha=0.7)
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     
-    # Adicionar valores em porcentagem no gráfico de linha
     for i, (data, valor) in enumerate(zip(datas, prob_chuva)):
         axs[1].text(data, valor + 3, f'{valor}%', ha='center', va='bottom', fontsize=10, color='darkorange')
 
-    # --- GRÁFICO 3: TEMPERATURA (ANTIGO GRÁFICO 2) ---
+    # --- GRÁFICO 3: TEMPERATURA ---
     axs[2].plot(datas, temp_max, marker='o', linestyle='-', label='Máxima (°C)', color='red')
     axs[2].plot(datas, temp_media, marker='s', linestyle='--', label='Média (°C)', color='orange')
     axs[2].plot(datas, temp_min, marker='^', linestyle='-', label='Mínima (°C)', color='blue')
@@ -105,6 +98,9 @@ def criar_graficos(dados):
         axs[2].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='orange')
     for i, (data, valor) in enumerate(zip(datas, temp_min)):
         axs[2].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='blue')
+
+    # --- MUDANÇA: ADICIONAR A FONTE DA INFORMAÇÃO ---
+    plt.figtext(0.98, 0.99, 'Fonte: WeatherAPI.com', ha='right', va='top', fontsize=10, color='gray', style='italic')
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
