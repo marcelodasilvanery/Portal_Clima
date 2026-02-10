@@ -37,7 +37,6 @@ def formatar_mensagem(dados):
     hora_atualizacao_str = dados['location']['localtime']
     hora_atualizacao = datetime.strptime(hora_atualizacao_str, '%Y-%m-%d %H:%M').strftime('%H:%M')
     
-    # --- MUDANÇA: NOVO FORMATO DA MENSAGEM ---
     mensagem = (
         f"🌤️ Previsão do tempo - {local}\n"
         f"Próximos 10 dias\n\n"
@@ -47,7 +46,7 @@ def formatar_mensagem(dados):
     return mensagem
 
 def criar_graficos(dados):
-    """Cria e salva dois gráficos: precipitação com probabilidade e temperatura."""
+    """Cria e salva dois gráficos com números maiores para melhor visualização."""
     dias = dados['forecast']['forecastday']
     datas = [datetime.strptime(d['date'], '%Y-%m-%d') for d in dias]
     
@@ -67,18 +66,20 @@ def criar_graficos(dados):
     axs[0].grid(axis='y', linestyle='--', alpha=0.7)
     axs[0].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     
-    # Adiciona a entrada do asterisco na legenda
     axs[0].plot([], [], marker='*', color='darkorange', linestyle='None', markersize=10, label='Probabilidade de Chuva (%)')
     axs[0].legend()
     
+    # --- MUDANÇA: AUMENTAR FONTE E AJUSTAR POSIÇÃO DOS NÚMEROS DE CHUVA ---
     for i, (data, precip, prob) in enumerate(zip(datas, precipitacao_mm, prob_chuva)):
         if precip > 0:
-            axs[0].text(data, precip + 0.2, f'{precip:.1f}mm', ha='center', va='bottom', fontsize=10, color='black')
+            # Aumenta o fontsize e afasta o texto da barra
+            axs[0].text(data, precip + 0.5, f'{precip:.1f}mm', ha='center', va='bottom', fontsize=12, fontweight='bold', color='black')
         
-        y_pos_prob = max(precip, 0.5) + 0.5 
+        # Aumenta o fontsize da probabilidade e ajusta a posição
+        y_pos_prob = max(precip, 0.5) + 0.8 
         x_pos_prob = mdates.date2num(data) + 0.12
         
-        axs[0].text(x_pos_prob, y_pos_prob, f'* {prob}%', ha='left', va='bottom', fontsize=9, color='darkorange')
+        axs[0].text(x_pos_prob, y_pos_prob, f'* {prob}%', ha='left', va='bottom', fontsize=11, color='darkorange')
 
     # --- GRÁFICO 2: TEMPERATURA ---
     axs[1].plot(datas, temp_max, marker='o', linestyle='-', label='Máxima (°C)', color='red')
@@ -91,12 +92,13 @@ def criar_graficos(dados):
     axs[1].grid(True, linestyle='--', alpha=0.7)
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
 
+    # --- MUDANÇA: AUMENTAR FONTE E AJUSTAR POSIÇÃO DOS NÚMEROS DE TEMPERATURA ---
     for i, (data, valor) in enumerate(zip(datas, temp_max)):
-        axs[1].text(data, valor + 0.5, f'{valor:.0f}°', ha='center', va='bottom', fontsize=9, color='red')
+        axs[1].text(data, valor + 0.8, f'{valor:.0f}°', ha='center', va='bottom', fontsize=11, fontweight='bold', color='red')
     for i, (data, valor) in enumerate(zip(datas, temp_media)):
-        axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='orange')
+        axs[1].text(data, valor - 0.8, f'{valor:.0f}°', ha='center', va='top', fontsize=11, color='orange')
     for i, (data, valor) in enumerate(zip(datas, temp_min)):
-        axs[1].text(data, valor - 0.5, f'{valor:.0f}°', ha='center', va='top', fontsize=9, color='blue')
+        axs[1].text(data, valor - 0.8, f'{valor:.0f}°', ha='center', va='top', fontsize=11, color='blue')
 
     # --- MANTER A FONTE DA INFORMAÇÃO ---
     plt.figtext(0.98, 0.99, 'Fonte: WeatherAPI.com', ha='right', va='top', fontsize=10, color='gray', style='italic')
